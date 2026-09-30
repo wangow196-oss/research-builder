@@ -157,7 +157,7 @@ export default function ImportPage() {
               {folder.expanded && (
                 <div className="ml-7">
                   {folder.files.map((file) => (
-                    <div key={file.id} className="flex items-center gap-2 px-3 py-1.5 text-[12px] cursor-pointer transition-colors rounded" style={{ color: "var(--gray-5)" }} onMouseEnter={(e) => { e.currentTarget.style.background = "var(--gray-1)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
+                    <div key={file.id} className="flex items-center gap-2 px-3 py-1.5 text-[12px] cursor-pointer transition-colors rounded" style={{ color: "var(--gray-5)" }} onClick={() => setPreviewFile(file)} onMouseEnter={(e) => { e.currentTarget.style.background = "var(--gray-1)"; e.currentTarget.style.color = "var(--gray-7)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--gray-5)"; }}>
                       <FileText size={12} style={{ color: "var(--accent)", flexShrink: 0 }} />
                       <span className="truncate">{file.name}</span>
                     </div>
