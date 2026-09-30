@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Globe, FileText, X, Sparkles } from "lucide-react";
+import { Send, Loader2, Globe, FileText, X, Sparkles, MessageSquare } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";
@@ -21,15 +21,14 @@ export function QAPanel({ selectedText, fileName, onClose }: QAPanelProps) {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Auto-ask when selectedText changes
+  // Set initial input based on selected text
   useEffect(() => {
-    if (selectedText && messages.length === 0) {
-      handleAsk(`请解释以下研报内容的含义：\n\n「${selectedText}」`);
+    if (selectedText) {
+      setInput(`请解释「${selectedText.slice(0, 50)}${selectedText.length > 50 ? "..." : ""}」`);
     }
   }, [selectedText]);
 
@@ -41,32 +40,56 @@ export function QAPanel({ selectedText, fileName, onClose }: QAPanelProps) {
     setInput("");
     setIsLoading(true);
 
-    // Simulate AI response (replace with real API call later)
-    setTimeout(() => {
-      const responses: Record<string, { content: string; sources: string[] }> = {
-        default: {
-          content: `基于研报「${fileName}」的内容分析：\n\n${selectedText ? `您引用的段落涉及以下要点：\n• 这是研报中的关键论述\n• 与整体研究框架密切相关\n• 建议结合上下文理解\n\n` : ""}这是一个模拟回答。接入 Claude API 后，AI 将：\n1. 结合研报上下文进行深度解读\n2. 搜索互联网获取最新数据佐证\n3. 给出结构化的分析结论`,
-          sources: ["研报原文", "模拟数据源"],
-        },
-      };
+    try {
+      const res = await fetch("http://localhost:8000/api/qa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question,
+          selected_text: selectedText,
+          file_name: fileName,
+          history: messages.map((m) => ({ role: m.role, content: m.content })),
+        }),
+      });
 
-      const response = responses.default;
+      if (!res.ok) throw new Error("请求失败");
+
+      const data = await res.json();
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: response.content,
-          sources: response.sources,
+          content: data.answer,
+          sources: data.sources,
         },
       ]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "请求失败，请确认后端服务已启动（localhost:8000）",
+          sources: [],
+        },
+      ]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     handleAsk(input);
   };
+
+  const quickQuestions = selectedText
+    ? [
+        `什么是${selectedText.slice(0, 15)}？`,
+        `这对投资有什么影响？`,
+        `最新的数据是什么？`,
+        `和${selectedText.slice(0, 10)}相关的概念有哪些？`,
+      ]
+    : [];
 
   return (
     <div className="flex flex-col h-full bg-white" style={{ borderLeft: "1px solid var(--gray-2)" }}>
@@ -87,9 +110,9 @@ export function QAPanel({ selectedText, fileName, onClose }: QAPanelProps) {
           <div className="flex items-start gap-2">
             <FileText size={12} className="mt-0.5 flex-shrink-0" style={{ color: "var(--accent)" }} />
             <div>
-              <p className="text-[11px] mb-1" style={{ color: "var(--accent)" }}>引用内容</p>
-              <p className="text-[12px] leading-relaxed line-clamp-3" style={{ color: "var(--gray-6)" }}>
-                「{selectedText.length > 120 ? selectedText.slice(0, 120) + "..." : selectedText}」
+              <p className="text-[11px] mb-1" style={{ color: "var(--accent)" }}>选中内容</p>
+              <p className="text-[12px] leading-relaxed" style={{ color: "var(--gray-6)" }}>
+                「{selectedText.length > 200 ? selectedText.slice(0, 200) + "..." : selectedText}」
               </p>
             </div>
           </div>
@@ -99,10 +122,33 @@ export function QAPanel({ selectedText, fileName, onClose }: QAPanelProps) {
       {/* Messages */}
       <div className="flex-1 overflow-auto p-4 space-y-4">
         {messages.length === 0 && !isLoading && (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
-            <Sparkles size={32} strokeWidth={1} style={{ color: "var(--gray-3)" }} />
-            <p className="text-[13px]" style={{ color: "var(--gray-4)" }}>在 PDF 中选中文本即可提问</p>
-            <p className="text-[11px]" style={{ color: "var(--gray-3)" }}>AI 将结合研报内容和互联网数据回答</p>
+          <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
+            <MessageSquare size={32} strokeWidth={1} style={{ color: "var(--gray-3)" }} />
+            <div>
+              <p className="text-[13px] mb-1" style={{ color: "var(--gray-5)" }}>
+                {selectedText ? "基于选中内容提问" : "在 PDF 中选中文本即可提问"}
+              </p>
+              <p className="text-[11px]" style={{ color: "var(--gray-4)" }}>
+                AI 将结合研报内容为你解答
+              </p>
+            </div>
+            {/* Quick questions */}
+            {quickQuestions.length > 0 && (
+              <div className="flex flex-wrap gap-2 justify-center">
+                {quickQuestions.map((q, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleAsk(q)}
+                    className="px-3 py-1.5 rounded-full text-[11px] border transition-colors"
+                    style={{ borderColor: "var(--gray-2)", color: "var(--gray-6)" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--gray-2)"; e.currentTarget.style.color = "var(--gray-6)"; }}
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -117,9 +163,9 @@ export function QAPanel({ selectedText, fileName, onClose }: QAPanelProps) {
             >
               <p className="text-[12px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
               {msg.sources && msg.sources.length > 0 && (
-                <div className="flex items-center gap-1.5 mt-2 pt-2" style={{ borderTop: "1px solid var(--gray-2)" }}>
-                  <Globe size={10} style={{ color: "var(--gray-4)" }} />
-                  <span className="text-[10px]" style={{ color: "var(--gray-4)" }}>来源：{msg.sources.join("、")}</span>
+                <div className="flex items-center gap-1.5 mt-2 pt-2" style={{ borderTop: msg.role === "user" ? "1px solid rgba(255,255,255,0.2)" : "1px solid var(--gray-2)" }}>
+                  <Globe size={10} style={{ color: msg.role === "user" ? "rgba(255,255,255,0.6)" : "var(--gray-4)" }} />
+                  <span className="text-[10px]" style={{ color: msg.role === "user" ? "rgba(255,255,255,0.6)" : "var(--gray-4)" }}>来源：{msg.sources.join("、")}</span>
                 </div>
               )}
             </div>
@@ -145,7 +191,7 @@ export function QAPanel({ selectedText, fileName, onClose }: QAPanelProps) {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="输入问题..."
+          placeholder="输入你的问题..."
           className="flex-1 px-3 py-2 text-[12px] border rounded-lg outline-none"
           style={{ borderColor: "var(--gray-2)" }}
           onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}

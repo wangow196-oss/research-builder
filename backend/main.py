@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import files, analyze, data
+from routers import files, analyze, data, qa
 
 app = FastAPI(
     title="研报智析 API",
@@ -23,6 +23,7 @@ app.add_middleware(
 app.include_router(files.router, prefix="/api", tags=["files"])
 app.include_router(analyze.router, prefix="/api", tags=["analyze"])
 app.include_router(data.router, prefix="/api", tags=["data"])
+app.include_router(qa.router, prefix="/api", tags=["qa"])
 
 
 @app.get("/")
