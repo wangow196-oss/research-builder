@@ -194,11 +194,11 @@ export default function ImportPage() {
 
         {/* File Table */}
         {currentFolder && currentFolder.files.length > 0 && (
-          <div className="border rounded-lg overflow-hidden flex-1" style={{ borderColor: "var(--gray-2)" }}>
-            <div className="grid grid-cols-[24px_1fr_80px_100px_80px] gap-2 px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider border-b" style={{ background: "var(--gray-1)", borderColor: "var(--gray-2)", color: "var(--gray-4)" }}>
+          <div className="border rounded-lg flex-1 flex flex-col min-h-0" style={{ borderColor: "var(--gray-2)" }}>
+            <div className="grid grid-cols-[24px_1fr_80px_100px_80px] gap-2 px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider border-b flex-shrink-0" style={{ background: "var(--gray-1)", borderColor: "var(--gray-2)", color: "var(--gray-4)" }}>
               <span></span><span>文件名</span><span>大小</span><span>发布时间</span><span className="text-right">操作</span>
             </div>
-            <div className="overflow-auto">
+            <div className="overflow-auto flex-1">
               {currentFolder.files.map((file, index) => (
                 <div
                   key={file.id}
