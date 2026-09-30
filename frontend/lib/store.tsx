@@ -126,15 +126,37 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     for (let i = 0; i < newFiles.length; i++) {
       const file = newFiles[i];
       const fileId = `file-${Date.now()}-${i}`;
+
       // Save blob to IndexedDB if provided
       if (file.blob) {
         await saveFileBlob(fileId, file.blob);
       }
+
+      // Try to upload to backend and get publish date
+      let publishDate: string | undefined;
+      if (file.blob) {
+        try {
+          const formData = new FormData();
+          formData.append("file", file.blob, file.name);
+          const res = await fetch("http://localhost:8000/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+          if (res.ok) {
+            const data = await res.json();
+            publishDate = data.publish_date || undefined;
+          }
+        } catch {
+          // Backend not available, skip
+        }
+      }
+
       items.push({
         id: fileId,
         name: file.name,
         size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
         date: new Date().toISOString().split("T")[0],
+        publishDate: publishDate,
         hasBlob: !!file.blob,
       });
     }
