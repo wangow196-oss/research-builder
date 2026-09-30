@@ -3,11 +3,10 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Loader2 } from "lucide-react";
 import { getFileBlob } from "@/lib/db";
-import dynamic from "next/dynamic";
 
-// Dynamically import react-pdf with no SSR
-const Document = dynamic(() => import("react-pdf").then((mod) => mod.Document), { ssr: false });
-const Page = dynamic(() => import("react-pdf").then((mod) => mod.Page), { ssr: false });
+// We'll load react-pdf dynamically on the client
+let DocumentComp: any = null;
+let PageComp: any = null;
 
 interface PdfViewerProps {
   fileId: string;
@@ -23,9 +22,15 @@ export function PdfViewer({ fileId, fileName }: PdfViewerProps) {
   const [error, setError] = useState(false);
   const [pdfjsLib, setPdfjsLib] = useState<any>(null);
 
-  // Load pdfjs on client side
+  // Load pdfjs and components on client side
   useEffect(() => {
-    import("react-pdf").then((mod) => {
+    Promise.all([
+      import("react-pdf/dist/Page/AnnotationLayer.css"),
+      import("react-pdf/dist/Page/TextLayer.css"),
+      import("react-pdf"),
+    ]).then(([, , mod]) => {
+      DocumentComp = mod.Document;
+      PageComp = mod.Page;
       const pdfjs = mod.pdfjs;
       pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
       setPdfjsLib(pdfjs);
@@ -105,9 +110,11 @@ export function PdfViewer({ fileId, fileName }: PdfViewerProps) {
 
       {/* PDF Pages */}
       <div className="flex-1 overflow-auto p-4 flex justify-center" style={{ background: "var(--gray-2)" }}>
-        <Document file={pdfUrl} onLoadSuccess={onDocumentLoadSuccess} onLoadError={() => setError(true)} loading={<span className="text-[12px]" style={{ color: "var(--gray-4)" }}>加载中...</span>}>
-          <Page pageNumber={pageNumber} scale={scale} className="shadow-lg" />
-        </Document>
+        {DocumentComp && PageComp && (
+          <DocumentComp file={pdfUrl} onLoadSuccess={onDocumentLoadSuccess} onLoadError={() => setError(true)} loading={<span className="text-[12px]" style={{ color: "var(--gray-4)" }}>加载中...</span>}>
+            <PageComp pageNumber={pageNumber} scale={scale} className="shadow-lg" />
+          </DocumentComp>
+        )}
       </div>
     </div>
   );
