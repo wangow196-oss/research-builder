@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from "react";
 import { useStore, FileItem } from "@/lib/store";
 import { PdfViewer } from "@/components/PdfViewer";
+import { QAPanel } from "@/components/QAPanel";
 import {
   FolderOpen,
   FileText,
@@ -38,6 +39,8 @@ export default function ImportPage() {
   const [editingFileId, setEditingFileId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
+  const [qaText, setQaText] = useState("");
+  const [showQA, setShowQA] = useState(false);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -207,7 +210,7 @@ export default function ImportPage() {
                         <button onClick={confirmRename} style={{ color: "var(--accent)" }}><Check size={14} /></button>
                       </div>
                     ) : (
-                      <span className="text-[13px] truncate" style={{ color: "var(--gray-7)" }}>{file.name}</span>
+                      <span className="text-[13px] truncate cursor-pointer hover:underline" style={{ color: "var(--gray-7)" }} onClick={() => setPreviewFile(file)}>{file.name}</span>
                     )}
                   </div>
 
@@ -233,9 +236,9 @@ export default function ImportPage() {
         )}
       </div>
 
-      {/* Preview Modal — 左侧 PDF，右侧导读 */}
+      {/* Preview Modal — 左侧 PDF，右侧导读/问答 */}
       {previewFile && (
-        <div className="fixed inset-0 z-50 flex" style={{ background: "rgba(0,0,0,0.5)" }} onClick={() => setPreviewFile(null)}>
+        <div className="fixed inset-0 z-50 flex" style={{ background: "rgba(0,0,0,0.5)" }} onClick={() => { setPreviewFile(null); setShowQA(false); setQaText(""); }}>
           <div className="flex w-full h-full" onClick={(e) => e.stopPropagation()}>
             {/* Left: PDF Viewer */}
             <div className="flex-1 flex flex-col" style={{ background: "var(--gray-7)" }}>
@@ -245,13 +248,17 @@ export default function ImportPage() {
                   <span className="text-[13px] truncate" style={{ color: "var(--gray-3)" }}>{previewFile.name}</span>
                   <span className="text-[11px] px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.1)", color: "var(--gray-4)" }}>{previewFile.size}</span>
                 </div>
-                <button onClick={() => setPreviewFile(null)} className="p-1 rounded" style={{ color: "var(--gray-4)" }} onMouseEnter={(e) => { e.currentTarget.style.color = "white"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "var(--gray-4)"; }}>
+                <button onClick={() => { setPreviewFile(null); setShowQA(false); setQaText(""); }} className="p-1 rounded" style={{ color: "var(--gray-4)" }} onMouseEnter={(e) => { e.currentTarget.style.color = "white"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "var(--gray-4)"; }}>
                   <X size={16} />
                 </button>
               </div>
               <div className="flex-1 overflow-hidden">
                 {previewFile.hasBlob ? (
-                  <PdfViewer fileId={previewFile.id} fileName={previewFile.name} />
+                  <PdfViewer
+                    fileId={previewFile.id}
+                    fileName={previewFile.name}
+                    onTextSelect={(text) => { setQaText(text); setShowQA(true); }}
+                  />
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full gap-3" style={{ color: "var(--gray-4)" }}>
                     <FileText size={40} strokeWidth={1} />
@@ -262,15 +269,23 @@ export default function ImportPage() {
               </div>
             </div>
 
-            {/* Right: 导读分析 */}
-            <div className="w-[480px] min-w-[480px] flex flex-col bg-white border-l" style={{ borderColor: "var(--gray-2)" }}>
+            {/* Right: 导读分析 or QA Panel */}
+            <div className="w-[480px] min-w-[480px] flex flex-col">
+              {showQA ? (
+                <QAPanel
+                  selectedText={qaText}
+                  fileName={previewFile.name}
+                  onClose={() => { setShowQA(false); setQaText(""); }}
+                />
+              ) : (
+            <div className="w-full h-full flex flex-col bg-white border-l" style={{ borderColor: "var(--gray-2)" }}>
               <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--gray-2)" }}>
                 <div className="flex items-center gap-2">
                   <BookOpen size={14} style={{ color: "var(--accent)" }} />
                   <span className="text-[13px] font-medium" style={{ color: "var(--gray-8)" }}>研报导读</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => setPreviewFile(null)} className="px-3 py-1.5 rounded-md text-[12px] border" style={{ borderColor: "var(--gray-2)", color: "var(--gray-6)" }}>关闭</button>
+                  <button onClick={() => { setPreviewFile(null); setShowQA(false); }} className="px-3 py-1.5 rounded-md text-[12px] border" style={{ borderColor: "var(--gray-2)", color: "var(--gray-6)" }}>关闭</button>
                 </div>
               </div>
               <div className="flex-1 overflow-auto p-5 space-y-4">
@@ -358,6 +373,8 @@ export default function ImportPage() {
                   </p>
                 </div>
               </div>
+            </div>
+              )}
             </div>
           </div>
         </div>
