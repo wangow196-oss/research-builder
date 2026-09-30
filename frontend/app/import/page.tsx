@@ -15,6 +15,7 @@ import {
   Check,
   GripVertical,
   Eye,
+  BookOpen,
 } from "lucide-react";
 
 export default function ImportPage() {
@@ -231,38 +232,165 @@ export default function ImportPage() {
         )}
       </div>
 
-      {/* Preview Modal */}
+      {/* Preview Modal — 左侧 PDF，右侧导读 */}
       {previewFile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.4)" }} onClick={() => setPreviewFile(null)}>
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--gray-2)" }}>
-              <div className="flex items-center gap-2 min-w-0">
-                <FileText size={16} style={{ color: "var(--accent)" }} />
-                <span className="text-[14px] font-medium truncate" style={{ color: "var(--gray-8)" }}>{previewFile.name}</span>
-              </div>
-              <button onClick={() => setPreviewFile(null)} style={{ color: "var(--gray-4)" }}><X size={18} /></button>
-            </div>
-            <div className="flex-1 overflow-auto p-5">
-              <div className="space-y-3 text-[13px]" style={{ color: "var(--gray-6)" }}>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><span className="font-medium" style={{ color: "var(--gray-7)" }}>文件名：</span>{previewFile.name}</div>
-                  <div><span className="font-medium" style={{ color: "var(--gray-7)" }}>大小：</span>{previewFile.size}</div>
-                  <div><span className="font-medium" style={{ color: "var(--gray-7)" }}>上传时间：</span>{previewFile.date}</div>
-                  <div><span className="font-medium" style={{ color: "var(--gray-7)" }}>所属文件夹：</span>{currentFolder?.name}</div>
+        <div className="fixed inset-0 z-50 flex" style={{ background: "rgba(0,0,0,0.5)" }} onClick={() => setPreviewFile(null)}>
+          <div className="flex w-full h-full" onClick={(e) => e.stopPropagation()}>
+            {/* Left: PDF Viewer */}
+            <div className="flex-1 flex flex-col" style={{ background: "var(--gray-7)" }}>
+              <div className="flex items-center justify-between px-4 py-2.5" style={{ background: "var(--gray-8)" }}>
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText size={14} style={{ color: "var(--gray-4)" }} />
+                  <span className="text-[13px] truncate" style={{ color: "var(--gray-3)" }}>{previewFile.name}</span>
+                  <span className="text-[11px] px-1.5 py-0.5 rounded" style={{ background: "rgba(255,255,255,0.1)", color: "var(--gray-4)" }}>{previewFile.size}</span>
                 </div>
-                <div className="mt-4 p-4 rounded-lg" style={{ background: "var(--gray-1)" }}>
-                  <p className="text-[12px]" style={{ color: "var(--gray-4)" }}>
-                    PDF 预览功能需要后端支持。当前显示文件基本信息。
-                  </p>
-                  <p className="text-[12px] mt-2" style={{ color: "var(--gray-4)" }}>
-                    接入后端后，此处将显示 PDF 的前几页预览和解析后的文本内容。
-                  </p>
+                <button onClick={() => setPreviewFile(null)} className="p-1 rounded" style={{ color: "var(--gray-4)" }} onMouseEnter={(e) => { e.currentTarget.style.color = "white"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "var(--gray-4)"; }}>
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
+                <div className="w-full max-w-3xl bg-white rounded shadow-lg overflow-auto" style={{ minHeight: "600px" }}>
+                  {/* PDF 内容模拟 — 接入后替换为 iframe 或 react-pdf */}
+                  <div className="p-8">
+                    <div className="text-center mb-8">
+                      <h1 className="text-[20px] font-bold mb-2" style={{ color: "var(--gray-8)" }}>大周期系列黄金定价研究（一）</h1>
+                      <h2 className="text-[16px] mb-4" style={{ color: "var(--gray-6)" }}>拆解黄金定价逻辑与美元美债体系</h2>
+                      <p className="text-[12px]" style={{ color: "var(--gray-4)" }}>东海证券研究所 · 张季恺 S0630521110001 · 谢建斌 S0630522020001</p>
+                      <p className="text-[12px]" style={{ color: "var(--gray-4)" }}>2026年9月10日 · 行业深度 · 有色金属 · 评级：标配</p>
+                    </div>
+                    <div className="space-y-4 text-[13px] leading-relaxed" style={{ color: "var(--gray-7)" }}>
+                      <div>
+                        <h3 className="text-[14px] font-semibold mb-2" style={{ color: "var(--gray-8)" }}>核心观点</h3>
+                        <p>短期看利率、中期看央行的换挡期已经到来。短期定价锚（10年期TIPS实际利率）仍在2.39%~2.45%高位构成压制，但拐点信号正在积累；中期定价锚（全球央行购金）在2026Q2以288.9吨创同期纪录回归。</p>
+                      </div>
+                      <div>
+                        <h3 className="text-[14px] font-semibold mb-2" style={{ color: "var(--gray-8)" }}>第1章 此轮金价调整基本到位</h3>
+                        <p>1971年以来5次主要牛熊周期，牛市平均约54个月、熊市平均约52个月。2016年1月至今的长牛已达120个月以上。本轮日度口径最大回撤−29.6%，已接近历史回撤中位数29%。</p>
+                        <div className="my-3 p-3 rounded" style={{ background: "var(--gray-1)" }}>
+                          <p className="text-[12px] font-medium mb-1" style={{ color: "var(--gray-6)" }}>表1 黄金价格从前期峰值回撤阈值统计</p>
+                          <table className="w-full text-[12px]">
+                            <thead><tr style={{ borderBottom: "1px solid var(--gray-2)" }}><th className="text-left py-1">回撤阈值</th><th className="text-right py-1">发生次数</th><th className="text-right py-1">平均回撤</th><th className="text-right py-1">中位数</th></tr></thead>
+                            <tbody>
+                              <tr style={{ borderBottom: "1px solid var(--gray-2)" }}><td className="py-1">5%或以上</td><td className="text-right">29</td><td className="text-right">16%</td><td className="text-right">8%</td></tr>
+                              <tr style={{ borderBottom: "1px solid var(--gray-2)" }}><td className="py-1">10%或以上</td><td className="text-right">11</td><td className="text-right">30%</td><td className="text-right">28%</td></tr>
+                              <tr><td className="py-1">20%或以上</td><td className="text-right">8</td><td className="text-right">36%</td><td className="text-right">29%</td></tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="text-[14px] font-semibold mb-2" style={{ color: "var(--gray-8)" }}>第2章 黄金基本面的变与不变</h3>
+                        <p>七个维度：①实际利率与机会成本 ②美元与流动性 ③央行购金与去美元化 ④投机交易因素 ⑤实物供需 ⑥地缘与中国因素 ⑦边际因素与判断。汇总为13因子加权表。</p>
+                      </div>
+                      <div>
+                        <h3 className="text-[14px] font-semibold mb-2" style={{ color: "var(--gray-8)" }}>第3~6章 美元—美债体系拆解与实证</h3>
+                        <p>三张资产负债表恒等式 + 2SLS/Johansen协整VECM实证证伪。核心结论：海外需求作为美债收益率压舱石的边际效力已被供给扩张稀释殆尽。</p>
+                      </div>
+                      <p className="text-[11px] pt-4 border-t" style={{ borderColor: "var(--gray-2)", color: "var(--gray-4)" }}>
+                        数据来源：Wind、世界黄金协会WGC、IMF、美联储、美国财政部/CBO/OMB、日本财务省等
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-end gap-2 px-5 py-3 border-t" style={{ borderColor: "var(--gray-2)" }}>
-              <button onClick={() => setPreviewFile(null)} className="px-4 py-2 rounded-md text-[13px] border" style={{ borderColor: "var(--gray-2)", color: "var(--gray-6)" }}>关闭</button>
-              <button className="px-4 py-2 rounded-md text-[13px] text-white" style={{ background: "var(--accent)" }}>前往解读 →</button>
+
+            {/* Right: 导读分析 */}
+            <div className="w-[480px] min-w-[480px] flex flex-col bg-white border-l" style={{ borderColor: "var(--gray-2)" }}>
+              <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderColor: "var(--gray-2)" }}>
+                <div className="flex items-center gap-2">
+                  <BookOpen size={14} style={{ color: "var(--accent)" }} />
+                  <span className="text-[13px] font-medium" style={{ color: "var(--gray-8)" }}>研报导读</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setPreviewFile(null)} className="px-3 py-1.5 rounded-md text-[12px] border" style={{ borderColor: "var(--gray-2)", color: "var(--gray-6)" }}>关闭</button>
+                </div>
+              </div>
+              <div className="flex-1 overflow-auto p-5 space-y-4">
+                {/* 一句话逻辑 */}
+                <div className="p-3 rounded-lg" style={{ background: "var(--accent-5)", border: "1px solid var(--accent-10)" }}>
+                  <p className="text-[11px] font-medium mb-1" style={{ color: "var(--accent)" }}>一句话逻辑</p>
+                  <p className="text-[12px] leading-relaxed" style={{ color: "var(--gray-7)" }}>
+                    「短期看利率、中期看央行」的换挡期已经到来。短期定价锚仍在高位压制，但拐点信号积累；中期定价锚以288.9吨创纪录回归。结论：逢低分批买入。
+                  </p>
+                </div>
+
+                {/* 核心指标 */}
+                <div>
+                  <p className="text-[11px] font-medium mb-2" style={{ color: "var(--gray-5)" }}>核心指标</p>
+                  <div className="space-y-1.5">
+                    {[
+                      { name: "10Y TIPS实际收益率", value: "2.39%~2.45%", dir: "反向+++" },
+                      { name: "全球央行净购金", value: "2026Q2 288.9吨", dir: "正向+++" },
+                      { name: "美元指数", value: "98.87", dir: "反向++" },
+                      { name: "SPDR黄金ETF", value: "1,050吨", dir: "正向++" },
+                      { name: "联邦债务/GDP", value: "122.6%", dir: "正向++" },
+                    ].map((ind, i) => (
+                      <div key={i} className="flex items-center justify-between px-3 py-2 rounded" style={{ background: "var(--gray-1)" }}>
+                        <span className="text-[12px]" style={{ color: "var(--gray-7)" }}>{ind.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[12px] tabular-nums font-medium" style={{ color: "var(--gray-8)" }}>{ind.value}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: ind.dir.includes("正向") ? "rgba(220,38,38,0.08)" : "rgba(22,163,74,0.08)", color: ind.dir.includes("正向") ? "var(--danger)" : "var(--success)" }}>{ind.dir}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 研究框架 */}
+                <div>
+                  <p className="text-[11px] font-medium mb-2" style={{ color: "var(--gray-5)" }}>研究框架（三层递进）</p>
+                  <div className="space-y-1.5">
+                    {[
+                      { layer: "① 周期与统计", q: "这轮跌是不是牛市终结？", method: "牛熊周期统计+回撤分布" },
+                      { layer: "② 基本面七因子", q: "基本面变了吗？", method: "逐因子复盘→13因子加权表" },
+                      { layer: "③ 货币体系实证", q: "对手方出了什么问题？", method: "三张资产负债表+2SLS/VECM" },
+                    ].map((l, i) => (
+                      <div key={i} className="p-2.5 rounded" style={{ background: "var(--gray-1)" }}>
+                        <p className="text-[12px] font-medium" style={{ color: "var(--accent)" }}>{l.layer}</p>
+                        <p className="text-[11px]" style={{ color: "var(--gray-6)" }}>问题：{l.q}</p>
+                        <p className="text-[11px]" style={{ color: "var(--gray-4)" }}>方法：{l.method}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 判定规则 */}
+                <div>
+                  <p className="text-[11px] font-medium mb-2" style={{ color: "var(--gray-5)" }}>判定规则</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-2.5 rounded" style={{ background: "rgba(22,163,74,0.06)" }}>
+                      <p className="text-[11px] font-medium" style={{ color: "var(--success)" }}>确认信号</p>
+                      <p className="text-[11px] mt-0.5" style={{ color: "var(--gray-6)" }}>实际利率趋势性回落 + 金价收复前高</p>
+                    </div>
+                    <div className="p-2.5 rounded" style={{ background: "rgba(220,38,38,0.06)" }}>
+                      <p className="text-[11px] font-medium" style={{ color: "var(--danger)" }}>证伪条件</p>
+                      <p className="text-[11px] mt-0.5" style={{ color: "var(--gray-6)" }}>通胀触发加息、央行购金放缓、ETF回流中断</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 跟踪要点 */}
+                <div>
+                  <p className="text-[11px] font-medium mb-2" style={{ color: "var(--gray-5)" }}>后续跟踪要点</p>
+                  <ul className="space-y-1">
+                    {["8月及三季度美国CPI与9月FOMC路径", "2026Q3全球央行购金节奏", "ETF与期货多头回流的持续性", "美国财政供给与长债回购实际效果"].map((p, i) => (
+                      <li key={i} className="flex items-start gap-2 text-[11px]" style={{ color: "var(--gray-6)" }}>
+                        <span className="w-1 h-1 rounded-full mt-1.5 flex-shrink-0" style={{ background: "var(--accent)" }} />
+                        {p}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* 风险提示 */}
+                <div className="p-3 rounded-lg" style={{ background: "rgba(217,119,6,0.06)" }}>
+                  <p className="text-[11px] font-medium mb-1" style={{ color: "var(--warning)" }}>风险提示</p>
+                  <p className="text-[11px] leading-relaxed" style={{ color: "var(--gray-5)" }}>
+                    美国通胀再次上行；实际利率持续走高；美元超预期升值；央行购金不及预期；地缘政治风险缓和。
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
