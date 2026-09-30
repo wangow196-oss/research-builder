@@ -1,8 +1,11 @@
-"""AI 分析服务 — 调用 Claude API"""
+"""AI 分析服务 — 调用 Mimo（小米）API"""
 
 import os
-from anthropic import Anthropic
 from pydantic import BaseModel
+
+# Mimo API config
+MIMO_API_BASE = "https://api.xiaomi.com/v1"
+MIMO_MODEL = "mimo-v2.5-pro"
 
 
 class AnalysisResult(BaseModel):
@@ -30,62 +33,68 @@ SYSTEM_PROMPT = """你是一个专业的投研分析师助手。你的任务是�
 
 
 async def analyze_report(content: str) -> AnalysisResult:
-    """调用 Claude API 分析研报内容"""
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    """调用 Mimo API 分析研报内容"""
+    api_key = os.environ.get("MIMO_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
-        # Return mock data if no API key
         return AnalysisResult(
-            framework="（需配置 ANTHROPIC_API_KEY）\n研究方法：自下而上选股\n分析逻辑：盈利预测 → 估值 → 目标价",
-            indicators="（需配置 ANTHROPIC_API_KEY）\nPE(TTM): 28.5x\n营收增速: 15.2%",
-            charts="（需配置 ANTHROPIC_API_KEY）\nK线图、营收拆分饼图、估值对比折线图",
-            thinking="（需配置 ANTHROPIC_API_KEY）\n从品牌护城河切入，关注提价能力",
+            framework="（需配置 MIMO_API_KEY）\n研究方法：自下而上选股\n分析逻辑：盈利预测 → 估值 → 目标价",
+            indicators="（需配置 MIMO_API_KEY）\nPE(TTM): 28.5x\n营收增速: 15.2%",
+            charts="（需配置 MIMO_API_KEY）\nK线图、营收拆分饼图、估值对比折线图",
+            thinking="（需配置 MIMO_API_KEY）\n从品牌护城河切入，关注提价能力",
         )
 
-    client = Anthropic(api_key=api_key)
+    try:
+        from openai import OpenAI
 
-    # Truncate content if too long
-    max_chars = 50000
-    if len(content) > max_chars:
-        content = content[:max_chars] + "\n\n[...内容已截断...]"
+        client = OpenAI(api_key=api_key, base_url=MIMO_API_BASE)
 
-    message = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=2000,
-        system=SYSTEM_PROMPT,
-        messages=[
-            {
-                "role": "user",
-                "content": f"请分析以下研报内容：\n\n{content}",
-            }
-        ],
-    )
+        max_chars = 50000
+        if len(content) > max_chars:
+            content = content[:max_chars] + "\n\n[...内容已截断...]"
 
-    response_text = message.content[0].text
+        response = client.chat.completions.create(
+            model=MIMO_MODEL,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": f"请分析以下研报内容：\n\n{content}"},
+            ],
+            max_tokens=2000,
+            temperature=0.7,
+        )
 
-    # Parse response into four sections
-    sections = {"framework": "", "indicators": "", "charts": "", "thinking": ""}
-    current_section = None
+        response_text = response.choices[0].message.content
 
-    for line in response_text.split("\n"):
-        line_lower = line.lower()
-        if "框架" in line or "framework" in line_lower:
-            current_section = "framework"
-            continue
-        elif "指标" in line or "indicator" in line_lower:
-            current_section = "indicators"
-            continue
-        elif "图表" in line or "chart" in line_lower:
-            current_section = "charts"
-            continue
-        elif "思路" in line or "分析" in line and "thinking" not in sections:
-            current_section = "thinking"
-            continue
+        # Parse response into four sections
+        sections = {"framework": "", "indicators": "", "charts": "", "thinking": ""}
+        current_section = None
 
-        if current_section and line.strip():
-            sections[current_section] += line.strip() + "\n"
+        for line in response_text.split("\n"):
+            line_lower = line.lower()
+            if "框架" in line or "framework" in line_lower:
+                current_section = "framework"
+                continue
+            elif "指标" in line or "indicator" in line_lower:
+                current_section = "indicators"
+                continue
+            elif "图表" in line or "chart" in line_lower:
+                current_section = "charts"
+                continue
+            elif "思路" in line or ("分析" in line and "thinking" not in sections):
+                current_section = "thinking"
+                continue
 
-    # Fallback: if parsing failed, put everything in framework
-    if not any(sections.values()):
-        sections["framework"] = response_text
+            if current_section and line.strip():
+                sections[current_section] += line.strip() + "\n"
 
-    return AnalysisResult(**sections)
+        if not any(sections.values()):
+            sections["framework"] = response_text
+
+        return AnalysisResult(**sections)
+
+    except Exception as e:
+        return AnalysisResult(
+            framework=f"分析失败：{str(e)}",
+            indicators="分析失败",
+            charts="分析失败",
+            thinking="分析失败",
+        )

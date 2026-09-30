@@ -90,15 +90,6 @@ export function PdfViewer({ fileId, fileName, onTextSelect }: PdfViewerProps) {
     }
   };
 
-  // Trackpad pinch-to-zoom
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? -0.05 : 0.05;
-      setScale((prev) => Math.max(0.5, Math.min(2, prev + delta)));
-    }
-  }, []);
-
   // Track current page in scroll mode
   const handleScroll = useCallback(() => {
     if (!scrollMode || !containerRef.current) return;
@@ -165,7 +156,7 @@ export function PdfViewer({ fileId, fileName, onTextSelect }: PdfViewerProps) {
       </div>
 
       {/* PDF Content */}
-      <div ref={containerRef} className="flex-1 overflow-auto p-4" style={{ background: "var(--gray-2)" }} onScroll={handleScroll} onWheel={handleWheel}>
+      <div ref={containerRef} className="flex-1 overflow-auto p-4" style={{ background: "var(--gray-2)" }} onScroll={handleScroll}>
         {DocumentComp && PageComp && (
           <DocumentComp file={pdfUrl} onLoadSuccess={onDocumentLoadSuccess} onLoadError={() => setError(true)} loading={<span className="text-[12px]" style={{ color: "var(--gray-4)" }}>加载中...</span>}>
             {scrollMode ? (
