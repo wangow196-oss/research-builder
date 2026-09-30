@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
-import { saveFileBlob, deleteFileBlob } from "./db";
+import { saveFileBlob, deleteFileBlob, getFileBlob } from "./db";
 
 export interface FileItem {
   id: string;
@@ -44,8 +44,8 @@ const defaultFolders: FolderItem[] = [
     icon: "🥇",
     expanded: true,
     files: [
-      { id: "g1", name: "东海证券_拆解黄金定价逻辑与美元美债体系.pdf", size: "4.2 MB", date: "2024-03-15" },
-      { id: "g2", name: "美联储降息对黄金影响.pdf", size: "1.8 MB", date: "2024-03-14" },
+      { id: "g1", name: "东海证券_拆解黄金定价逻辑与美元美债体系.pdf", size: "5.1 MB", date: "2026-09-10", publishDate: "2026-09-10", hasBlob: true },
+      { id: "g2", name: "东北证券_黄金历史的回响——复盘70年代黄金大牛市.pdf", size: "2.4 MB", date: "2026-09-10", publishDate: "2026-09-10", hasBlob: true },
     ],
   },
   {
@@ -97,11 +97,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [activeFolder, setActiveFolder] = useState("gold");
   const [initialized, setInitialized] = useState(false);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount + fetch demo PDFs
   useEffect(() => {
     const loaded = loadFolders();
     setFolders(loaded);
     setInitialized(true);
+
+    // Fetch demo PDFs into IndexedDB if not already stored
+    const demoFiles = [
+      { id: "g1", url: "/demo-pdfs/东海证券_拆解黄金定价逻辑.pdf" },
+      { id: "g2", url: "/demo-pdfs/东北证券_黄金历史的回响.pdf" },
+    ];
+    demoFiles.forEach(async ({ id, url }) => {
+      try {
+        const existing = await getFileBlob(id);
+        if (!existing) {
+          const res = await fetch(url);
+          if (res.ok) {
+            const blob = await res.blob();
+            await saveFileBlob(id, blob);
+          }
+        }
+      } catch {}
+    });
   }, []);
 
   // Save to localStorage whenever folders change

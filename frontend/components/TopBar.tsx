@@ -5,14 +5,14 @@ import { Search, Settings } from "lucide-react";
 export function TopBar() {
   return (
     <header
-      className="h-14 min-h-[56px] flex items-center justify-between px-6 border-b"
+      className="h-14 min-h-[56px] flex items-center justify-between px-4 lg:px-6 border-b"
       style={{
         background: "white",
         borderColor: "var(--gray-2)",
       }}
     >
       {/* Search */}
-      <div className="flex items-center gap-2 flex-1 max-w-md">
+      <div className="flex items-center gap-2 flex-1 max-w-md pl-10 lg:pl-0">
         <div
           className="flex items-center gap-2 px-3 py-1.5 rounded-md border w-full"
           style={{

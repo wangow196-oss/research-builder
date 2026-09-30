@@ -123,9 +123,9 @@ export default function ImportPage() {
   };
 
   return (
-    <div className="flex gap-6 h-[calc(100vh-140px)]">
+    <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-[calc(100vh-140px)]">
       {/* Left: Folder Tree */}
-      <div className="w-[260px] min-w-[260px] border rounded-lg overflow-hidden flex flex-col" style={{ borderColor: "var(--gray-2)", background: "white" }}>
+      <div className="w-full lg:w-[260px] lg:min-w-[260px] border rounded-lg overflow-hidden flex flex-col" style={{ borderColor: "var(--gray-2)", background: "white" }}>
         <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "var(--gray-2)" }}>
           <span className="text-[13px] font-medium" style={{ color: "var(--gray-7)" }}>研报文件夹</span>
           <button onClick={() => setShowNewFolder(true)} className="p-1 rounded transition-colors" style={{ color: "var(--gray-4)" }} onMouseEnter={(e) => { e.currentTarget.style.color = "var(--accent)"; }} onMouseLeave={(e) => { e.currentTarget.style.color = "var(--gray-4)"; }}>
@@ -259,9 +259,9 @@ export default function ImportPage() {
       {/* Preview Modal — 左侧 PDF，右侧导读/问答 */}
       {previewFile && (
         <div className="fixed inset-0 z-50 flex" style={{ background: "rgba(0,0,0,0.5)" }} onClick={() => { setPreviewFile(null); setShowQA(false); setQaText(""); }}>
-          <div className="flex w-full h-full" onClick={(e) => e.stopPropagation()}>
+          <div className="flex flex-col lg:flex-row w-full h-full" onClick={(e) => e.stopPropagation()}>
             {/* Left: PDF Viewer */}
-            <div className="flex flex-col" style={{ width: `${splitRatio * 100}%`, background: "var(--gray-7)" }}>
+            <div className="flex flex-col h-[50%] lg:h-full" style={{ width: `${splitRatio * 100}%`, background: "var(--gray-7)" }}>
               <div className="flex items-center justify-between px-4 py-2.5" style={{ background: "var(--gray-8)" }}>
                 <div className="flex items-center gap-2 min-w-0">
                   <FileText size={14} style={{ color: "var(--gray-4)" }} />
@@ -289,15 +289,15 @@ export default function ImportPage() {
               </div>
             </div>
 
-            {/* Splitter */}
+            {/* Splitter — hidden on mobile */}
             <div
-              className="w-1 cursor-col-resize flex-shrink-0 transition-colors hover:bg-blue-400 active:bg-blue-500"
+              className="hidden lg:block w-1 cursor-col-resize flex-shrink-0 transition-colors hover:bg-blue-400 active:bg-blue-500"
               style={{ background: "var(--gray-3)" }}
               onMouseDown={handleSplitterMouseDown}
             />
 
             {/* Right: 导读分析 or QA Panel */}
-            <div className="flex flex-col" style={{ width: `${(1 - splitRatio) * 100}%`, minWidth: "320px" }}>
+            <div className="flex flex-col flex-1 lg:flex-none" style={{ minWidth: "0", width: `${(1 - splitRatio) * 100}%` }}>
               {showQA ? (
                 <QAPanel
                   selectedText={qaText}
