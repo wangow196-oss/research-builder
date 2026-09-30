@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useStore, FileItem } from "@/lib/store";
 import { PdfViewer } from "@/components/PdfViewer";
 import { QAPanel } from "@/components/QAPanel";
@@ -41,11 +41,31 @@ export default function ImportPage() {
   const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
   const [qaText, setQaText] = useState("");
   const [showQA, setShowQA] = useState(false);
+  const [splitRatio, setSplitRatio] = useState(0.62); // left panel ratio
+  const isDraggingRef = useRef(false);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentFolder = folders.find((f) => f.id === activeFolder);
+
+  // Splitter drag handlers
+  const handleSplitterMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingRef.current = true;
+    const handleMouseMove = (me: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      const ratio = me.clientX / window.innerWidth;
+      setSplitRatio(Math.max(0.3, Math.min(0.8, ratio)));
+    };
+    const handleMouseUp = () => {
+      isDraggingRef.current = false;
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  }, []);
 
   // Drag & drop upload — save actual file blobs
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -176,7 +196,7 @@ export default function ImportPage() {
         {currentFolder && currentFolder.files.length > 0 && (
           <div className="border rounded-lg overflow-hidden flex-1" style={{ borderColor: "var(--gray-2)" }}>
             <div className="grid grid-cols-[24px_1fr_80px_100px_80px] gap-2 px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider border-b" style={{ background: "var(--gray-1)", borderColor: "var(--gray-2)", color: "var(--gray-4)" }}>
-              <span></span><span>文件名</span><span>大小</span><span>上传时间</span><span className="text-right">操作</span>
+              <span></span><span>文件名</span><span>大小</span><span>研报日期</span><span className="text-right">操作</span>
             </div>
             <div className="overflow-auto">
               {currentFolder.files.map((file, index) => (
@@ -215,7 +235,7 @@ export default function ImportPage() {
                   </div>
 
                   <span className="text-[12px] tabular-nums" style={{ color: "var(--gray-4)" }}>{file.size}</span>
-                  <span className="text-[12px]" style={{ color: "var(--gray-4)" }}>{file.date}</span>
+                  <span className="text-[12px]" style={{ color: "var(--gray-4)" }}>{file.publishDate || file.date}</span>
 
                   {/* Actions */}
                   <div className="flex items-center gap-1 justify-end">
@@ -241,7 +261,7 @@ export default function ImportPage() {
         <div className="fixed inset-0 z-50 flex" style={{ background: "rgba(0,0,0,0.5)" }} onClick={() => { setPreviewFile(null); setShowQA(false); setQaText(""); }}>
           <div className="flex w-full h-full" onClick={(e) => e.stopPropagation()}>
             {/* Left: PDF Viewer */}
-            <div className="flex-1 flex flex-col" style={{ background: "var(--gray-7)" }}>
+            <div className="flex flex-col" style={{ width: `${splitRatio * 100}%`, background: "var(--gray-7)" }}>
               <div className="flex items-center justify-between px-4 py-2.5" style={{ background: "var(--gray-8)" }}>
                 <div className="flex items-center gap-2 min-w-0">
                   <FileText size={14} style={{ color: "var(--gray-4)" }} />
@@ -269,8 +289,15 @@ export default function ImportPage() {
               </div>
             </div>
 
+            {/* Splitter */}
+            <div
+              className="w-1 cursor-col-resize flex-shrink-0 transition-colors hover:bg-blue-400 active:bg-blue-500"
+              style={{ background: "var(--gray-3)" }}
+              onMouseDown={handleSplitterMouseDown}
+            />
+
             {/* Right: 导读分析 or QA Panel */}
-            <div className="w-[480px] min-w-[480px] flex flex-col">
+            <div className="flex flex-col" style={{ width: `${(1 - splitRatio) * 100}%`, minWidth: "320px" }}>
               {showQA ? (
                 <QAPanel
                   selectedText={qaText}

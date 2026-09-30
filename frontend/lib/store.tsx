@@ -8,6 +8,7 @@ export interface FileItem {
   name: string;
   size: string;
   date: string;
+  publishDate?: string; // 研报发布日期（从PDF第一页提取）
   hasBlob?: boolean; // whether a PDF blob is stored in IndexedDB
 }
 

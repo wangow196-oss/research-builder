@@ -29,12 +29,22 @@ async def upload_file(file: UploadFile = File(...)):
     with open(save_path, "wb") as f:
         f.write(content)
 
+    # Try to extract publish date from PDF
+    publish_date = None
+    if file.filename.lower().endswith(".pdf"):
+        try:
+            from services.pdf_parser import extract_publish_date
+            publish_date = extract_publish_date(save_path)
+        except Exception:
+            pass
+
     file_registry[file_id] = {
         "id": file_id,
         "name": file.filename,
         "size": len(content),
         "path": save_path,
         "uploaded_at": datetime.now().isoformat(),
+        "publish_date": publish_date,
         "parsed": False,
     }
 
