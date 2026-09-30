@@ -1,13 +1,14 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import { saveFileBlob, deleteFileBlob } from "./db";
 
 export interface FileItem {
   id: string;
   name: string;
   size: string;
   date: string;
-  content?: string; // parsed markdown content
+  hasBlob?: boolean; // whether a PDF blob is stored in IndexedDB
 }
 
 export interface FolderItem {
@@ -24,7 +25,7 @@ interface StoreContextType {
   setActiveFolder: (id: string) => void;
   addFolder: (name: string, icon?: string) => void;
   deleteFolder: (id: string) => void;
-  addFilesToFolder: (folderId: string, files: { name: string; size: number }[]) => void;
+  addFilesToFolder: (folderId: string, files: { name: string; size: number; blob?: Blob }[]) => Promise<void>;
   deleteFile: (folderId: string, fileId: string) => void;
   renameFile: (folderId: string, fileId: string, newName: string) => void;
   moveFile: (fromFolderId: string, toFolderId: string, fileId: string) => void;
@@ -32,6 +33,8 @@ interface StoreContextType {
   getFileById: (fileId: string) => { file: FileItem; folder: FolderItem } | null;
   getAllFiles: () => { file: FileItem; folderName: string; folderId: string }[];
 }
+
+const STORAGE_KEY = "reportmind-folders";
 
 const defaultFolders: FolderItem[] = [
   {
@@ -65,11 +68,47 @@ const defaultFolders: FolderItem[] = [
   },
 ];
 
+// Load from localStorage
+function loadFolders(): FolderItem[] {
+  if (typeof window === "undefined") return defaultFolders;
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+  return defaultFolders;
+}
+
+// Save to localStorage
+function saveFolders(folders: FolderItem[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(folders));
+  } catch {}
+}
+
 const StoreContext = createContext<StoreContextType | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [folders, setFolders] = useState<FolderItem[]>(defaultFolders);
   const [activeFolder, setActiveFolder] = useState("gold");
+  const [initialized, setInitialized] = useState(false);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const loaded = loadFolders();
+    setFolders(loaded);
+    setInitialized(true);
+  }, []);
+
+  // Save to localStorage whenever folders change
+  useEffect(() => {
+    if (initialized) {
+      saveFolders(folders);
+    }
+  }, [folders, initialized]);
 
   const addFolder = useCallback((name: string, icon = "📁") => {
     const id = `folder-${Date.now()}`;
@@ -81,22 +120,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setFolders((prev) => prev.filter((f) => f.id !== id));
   }, []);
 
-  const addFilesToFolder = useCallback((folderId: string, newFiles: { name: string; size: number }[]) => {
+  const addFilesToFolder = useCallback(async (folderId: string, newFiles: { name: string; size: number; blob?: Blob }[]) => {
+    const items: FileItem[] = [];
+    for (let i = 0; i < newFiles.length; i++) {
+      const file = newFiles[i];
+      const fileId = `file-${Date.now()}-${i}`;
+      // Save blob to IndexedDB if provided
+      if (file.blob) {
+        await saveFileBlob(fileId, file.blob);
+      }
+      items.push({
+        id: fileId,
+        name: file.name,
+        size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
+        date: new Date().toISOString().split("T")[0],
+        hasBlob: !!file.blob,
+      });
+    }
     setFolders((prev) =>
-      prev.map((f) => {
-        if (f.id !== folderId) return f;
-        const items: FileItem[] = newFiles.map((file, i) => ({
-          id: `file-${Date.now()}-${i}`,
-          name: file.name,
-          size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
-          date: new Date().toISOString().split("T")[0],
-        }));
-        return { ...f, files: [...f.files, ...items] };
-      })
+      prev.map((f) => (f.id === folderId ? { ...f, files: [...f.files, ...items] } : f))
     );
   }, []);
 
   const deleteFile = useCallback((folderId: string, fileId: string) => {
+    // Delete blob from IndexedDB
+    deleteFileBlob(fileId).catch(() => {});
     setFolders((prev) =>
       prev.map((f) => (f.id === folderId ? { ...f, files: f.files.filter((file) => file.id !== fileId) } : f))
     );

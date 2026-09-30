@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { useStore, FileItem } from "@/lib/store";
+import { PdfViewer } from "@/components/PdfViewer";
 import {
   FolderOpen,
   FileText,
@@ -43,7 +44,7 @@ export default function ImportPage() {
 
   const currentFolder = folders.find((f) => f.id === activeFolder);
 
-  // Drag & drop upload
+  // Drag & drop upload — save actual file blobs
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -55,7 +56,7 @@ export default function ImportPage() {
     (e: React.DragEvent) => {
       e.preventDefault();
       setIsDragging(false);
-      const dropped = Array.from(e.dataTransfer.files).map((f) => ({ name: f.name, size: f.size }));
+      const dropped = Array.from(e.dataTransfer.files).map((f) => ({ name: f.name, size: f.size, blob: f }));
       addFilesToFolder(activeFolder, dropped);
     },
     [activeFolder, addFilesToFolder]
@@ -63,7 +64,7 @@ export default function ImportPage() {
 
   const handleFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const selected = Array.from(e.target.files || []).map((f) => ({ name: f.name, size: f.size }));
+      const selected = Array.from(e.target.files || []).map((f) => ({ name: f.name, size: f.size, blob: f }));
       addFilesToFolder(activeFolder, selected);
     },
     [activeFolder, addFilesToFolder]
@@ -248,50 +249,16 @@ export default function ImportPage() {
                   <X size={16} />
                 </button>
               </div>
-              <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
-                <div className="w-full max-w-3xl bg-white rounded shadow-lg overflow-auto" style={{ minHeight: "600px" }}>
-                  {/* PDF 内容模拟 — 接入后替换为 iframe 或 react-pdf */}
-                  <div className="p-8">
-                    <div className="text-center mb-8">
-                      <h1 className="text-[20px] font-bold mb-2" style={{ color: "var(--gray-8)" }}>大周期系列黄金定价研究（一）</h1>
-                      <h2 className="text-[16px] mb-4" style={{ color: "var(--gray-6)" }}>拆解黄金定价逻辑与美元美债体系</h2>
-                      <p className="text-[12px]" style={{ color: "var(--gray-4)" }}>东海证券研究所 · 张季恺 S0630521110001 · 谢建斌 S0630522020001</p>
-                      <p className="text-[12px]" style={{ color: "var(--gray-4)" }}>2026年9月10日 · 行业深度 · 有色金属 · 评级：标配</p>
-                    </div>
-                    <div className="space-y-4 text-[13px] leading-relaxed" style={{ color: "var(--gray-7)" }}>
-                      <div>
-                        <h3 className="text-[14px] font-semibold mb-2" style={{ color: "var(--gray-8)" }}>核心观点</h3>
-                        <p>短期看利率、中期看央行的换挡期已经到来。短期定价锚（10年期TIPS实际利率）仍在2.39%~2.45%高位构成压制，但拐点信号正在积累；中期定价锚（全球央行购金）在2026Q2以288.9吨创同期纪录回归。</p>
-                      </div>
-                      <div>
-                        <h3 className="text-[14px] font-semibold mb-2" style={{ color: "var(--gray-8)" }}>第1章 此轮金价调整基本到位</h3>
-                        <p>1971年以来5次主要牛熊周期，牛市平均约54个月、熊市平均约52个月。2016年1月至今的长牛已达120个月以上。本轮日度口径最大回撤−29.6%，已接近历史回撤中位数29%。</p>
-                        <div className="my-3 p-3 rounded" style={{ background: "var(--gray-1)" }}>
-                          <p className="text-[12px] font-medium mb-1" style={{ color: "var(--gray-6)" }}>表1 黄金价格从前期峰值回撤阈值统计</p>
-                          <table className="w-full text-[12px]">
-                            <thead><tr style={{ borderBottom: "1px solid var(--gray-2)" }}><th className="text-left py-1">回撤阈值</th><th className="text-right py-1">发生次数</th><th className="text-right py-1">平均回撤</th><th className="text-right py-1">中位数</th></tr></thead>
-                            <tbody>
-                              <tr style={{ borderBottom: "1px solid var(--gray-2)" }}><td className="py-1">5%或以上</td><td className="text-right">29</td><td className="text-right">16%</td><td className="text-right">8%</td></tr>
-                              <tr style={{ borderBottom: "1px solid var(--gray-2)" }}><td className="py-1">10%或以上</td><td className="text-right">11</td><td className="text-right">30%</td><td className="text-right">28%</td></tr>
-                              <tr><td className="py-1">20%或以上</td><td className="text-right">8</td><td className="text-right">36%</td><td className="text-right">29%</td></tr>
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                      <div>
-                        <h3 className="text-[14px] font-semibold mb-2" style={{ color: "var(--gray-8)" }}>第2章 黄金基本面的变与不变</h3>
-                        <p>七个维度：①实际利率与机会成本 ②美元与流动性 ③央行购金与去美元化 ④投机交易因素 ⑤实物供需 ⑥地缘与中国因素 ⑦边际因素与判断。汇总为13因子加权表。</p>
-                      </div>
-                      <div>
-                        <h3 className="text-[14px] font-semibold mb-2" style={{ color: "var(--gray-8)" }}>第3~6章 美元—美债体系拆解与实证</h3>
-                        <p>三张资产负债表恒等式 + 2SLS/Johansen协整VECM实证证伪。核心结论：海外需求作为美债收益率压舱石的边际效力已被供给扩张稀释殆尽。</p>
-                      </div>
-                      <p className="text-[11px] pt-4 border-t" style={{ borderColor: "var(--gray-2)", color: "var(--gray-4)" }}>
-                        数据来源：Wind、世界黄金协会WGC、IMF、美联储、美国财政部/CBO/OMB、日本财务省等
-                      </p>
-                    </div>
+              <div className="flex-1 overflow-hidden">
+                {previewFile.hasBlob ? (
+                  <PdfViewer fileId={previewFile.id} fileName={previewFile.name} />
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full gap-3" style={{ color: "var(--gray-4)" }}>
+                    <FileText size={40} strokeWidth={1} />
+                    <span className="text-[13px]">此文件为占位示例，未上传真实 PDF</span>
+                    <span className="text-[11px]">请通过拖拽或点击上传真实 PDF 文件后即可预览</span>
                   </div>
-                </div>
+                )}
               </div>
             </div>
 
