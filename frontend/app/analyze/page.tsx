@@ -19,6 +19,7 @@ import {
   Eye,
   Copy,
 } from "lucide-react";
+import { useStore } from "@/lib/store";
 
 interface ReportAnalysis {
   // 基本信息
@@ -199,18 +200,13 @@ const mockAnalysis: ReportAnalysis = {
 };
 
 export default function AnalyzePage() {
-  const [selectedFile, setSelectedFile] = useState("");
+  const { getAllFiles } = useStore();
+  const [selectedFileId, setSelectedFileId] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<ReportAnalysis | null>(null);
   const [activeTab, setActiveTab] = useState("oneliner");
 
-  const files = [
-    { folder: "黄金研究", name: "东海证券_拆解黄金定价逻辑与美元美债体系.pdf" },
-    { folder: "黄金研究", name: "美联储降息对黄金影响.pdf" },
-    { folder: "白酒行业", name: "贵州茅台2024年报点评.pdf" },
-    { folder: "白酒行业", name: "五粮液深度报告.pdf" },
-    { folder: "CPO 光模块", name: "CPO技术路径与产业链.pdf" },
-  ];
+  const allFiles = getAllFiles();
 
   const tabs = [
     { id: "oneliner", label: "一句话逻辑" },
@@ -224,7 +220,7 @@ export default function AnalyzePage() {
   ];
 
   const handleAnalyze = () => {
-    if (!selectedFile) return;
+    if (!selectedFileId) return;
     setIsAnalyzing(true);
     setActiveTab("oneliner");
     setTimeout(() => {
@@ -247,14 +243,14 @@ export default function AnalyzePage() {
       <div className="flex items-center gap-3 mb-6">
         <div className="flex items-center gap-2 px-3 py-2 rounded-md border flex-1" style={{ borderColor: "var(--gray-2)", background: "white" }}>
           <Search size={14} style={{ color: "var(--gray-4)" }} />
-          <select value={selectedFile} onChange={(e) => setSelectedFile(e.target.value)} className="flex-1 text-[13px] bg-transparent outline-none" style={{ color: selectedFile ? "var(--gray-7)" : "var(--gray-4)" }}>
-            <option value="">选择一篇研报...</option>
-            {files.map((f, i) => (
-              <option key={i} value={f.name}>[{f.folder}] {f.name}</option>
+          <select value={selectedFileId} onChange={(e) => setSelectedFileId(e.target.value)} className="flex-1 text-[13px] bg-transparent outline-none" style={{ color: selectedFileId ? "var(--gray-7)" : "var(--gray-4)" }}>
+            <option value="">从研报导入中选择...</option>
+            {allFiles.map(({ file, folderName }) => (
+              <option key={file.id} value={file.id}>[{folderName}] {file.name}</option>
             ))}
           </select>
         </div>
-        <button onClick={handleAnalyze} disabled={!selectedFile || isAnalyzing} className="flex items-center gap-2 px-4 py-2 rounded-md text-[13px] font-medium text-white transition-colors disabled:opacity-40" style={{ background: "var(--accent)" }} onMouseEnter={(e) => { if (selectedFile && !isAnalyzing) e.currentTarget.style.background = "var(--accent-hover)"; }} onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}>
+        <button onClick={handleAnalyze} disabled={!selectedFileId || isAnalyzing} className="flex items-center gap-2 px-4 py-2 rounded-md text-[13px] font-medium text-white transition-colors disabled:opacity-40" style={{ background: "var(--accent)" }} onMouseEnter={(e) => { if (selectedFileId && !isAnalyzing) e.currentTarget.style.background = "var(--accent-hover)"; }} onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}>
           {isAnalyzing ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
           {isAnalyzing ? "分析中..." : "开始解读"}
         </button>

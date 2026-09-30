@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useStore } from "@/lib/store";
 import {
   Puzzle,
   ArrowRight,
@@ -10,12 +11,6 @@ import {
   FolderOpen,
   Loader2,
 } from "lucide-react";
-
-const folderOptions = [
-  { id: "gold", name: "黄金研究", icon: "🥇", count: 2 },
-  { id: "baijiu", name: "白酒行业", icon: "🍷", count: 2 },
-  { id: "cpo", name: "CPO 光模块", icon: "💡", count: 1 },
-];
 
 const frameworkData: Record<string, { dimensions: { name: string; desc: string; weight: string }[]; actions: { text: string; type: "next" | "watch" | "compare" }[] }> = {
   gold: {
@@ -60,11 +55,12 @@ const frameworkData: Record<string, { dimensions: { name: string; desc: string; 
 };
 
 export default function FrameworkPage() {
+  const { folders } = useStore();
   const [selectedFolder, setSelectedFolder] = useState("gold");
   const [isGenerating, setIsGenerating] = useState(false);
   const [showResult, setShowResult] = useState(true);
 
-  const currentFolder = folderOptions.find((f) => f.id === selectedFolder);
+  const currentFolder = folders.find((f: { id: string }) => f.id === selectedFolder);
   const currentFramework = frameworkData[selectedFolder];
 
   const handleGenerate = () => {
@@ -100,9 +96,9 @@ export default function FrameworkPage() {
             className="flex-1 text-[13px] bg-transparent outline-none"
             style={{ color: "var(--gray-7)" }}
           >
-            {folderOptions.map((f) => (
+            {folders.map((f) => (
               <option key={f.id} value={f.id}>
-                {f.icon} {f.name}（{f.count} 篇研报）
+                {f.icon} {f.name}（{f.files.length} 篇研报）
               </option>
             ))}
           </select>
@@ -131,7 +127,7 @@ export default function FrameworkPage() {
               研究框架：{currentFolder?.name}
             </span>
             <span className="text-[11px] px-2 py-0.5 rounded ml-auto" style={{ background: "var(--accent)", color: "white" }}>
-              基于 {currentFolder?.count} 篇研报生成
+              基于 {currentFolder?.files.length} 篇研报生成
             </span>
           </div>
 
