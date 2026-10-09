@@ -43,7 +43,7 @@ export function QAPanel({ selectedText, fileName, fileId, onClose }: QAPanelProp
     setIsLoading(true);
 
     try {
-      const res = await fetch("api("/api")/qa", {
+      const res = await fetch(api("/api/qa"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

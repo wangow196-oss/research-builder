@@ -159,7 +159,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         try {
           const formData = new FormData();
           formData.append("file", file.blob, file.name);
-          const res = await fetch("api("/api")/upload", {
+          const res = await fetch(api("/api/upload"), {
             method: "POST",
             body: formData,
           });
