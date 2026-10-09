@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Search,
   Play,
@@ -18,8 +18,154 @@ import {
   XCircle,
   Eye,
   Copy,
+  X,
+  ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { getFileBlob } from "@/lib/db";
+import { api } from "@/lib/api";
+
+// ==================== 章节树形组件 ====================
+
+interface TreeNode {
+  id: string;
+  label: string;
+  arrow?: string;
+  level: number;
+  children: TreeNode[];
+}
+
+function parseChapterTree(text: string): TreeNode[] {
+  const lines = text.split("\n").filter((l) => l.trim());
+  const roots: TreeNode[] = [];
+  const stack: { node: TreeNode; indent: number }[] = [];
+
+  lines.forEach((line, i) => {
+    const indent = line.search(/\S/);
+    const hasArrow = line.includes("→");
+    const parts = hasArrow ? line.split("→") : [line];
+    const rawLabel = parts[0].replace(/[├─└│\s]+/g, "").trim();
+    const arrow = hasArrow ? parts.slice(1).join("→").trim() : "";
+    const isMain = /^第[一二三四五六七八九十\d]+章/.test(rawLabel);
+    const isSub = /^\d+\.\d+/.test(rawLabel);
+
+    const node: TreeNode = {
+      id: `node-${i}`,
+      label: rawLabel,
+      arrow: arrow || undefined,
+      level: isMain ? 0 : isSub ? 1 : 2,
+      children: [],
+    };
+
+    while (stack.length > 0 && stack[stack.length - 1].indent >= indent) {
+      stack.pop();
+    }
+
+    if (stack.length === 0) {
+      roots.push(node);
+    } else {
+      stack[stack.length - 1].node.children.push(node);
+    }
+
+    stack.push({ node, indent });
+  });
+
+  return roots;
+}
+
+function ChapterNode({ node, depth, defaultExpanded }: { node: TreeNode; depth: number; defaultExpanded: boolean }) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const hasChildren = node.children.length > 0;
+  const isMain = node.level === 0;
+  const isSub = node.level === 1;
+  const chapterNum = isMain ? node.label.match(/^(第[^\s]*)/)?.[1] : null;
+  const displayLabel = chapterNum ? node.label.replace(chapterNum, "").trim() : node.label;
+
+  return (
+    <div>
+      <div
+        className={`flex items-start gap-3 group cursor-pointer rounded-lg transition-all duration-200 ${isMain ? "py-3 px-4 mb-2" : "py-2 px-3"}`}
+        style={{
+          marginLeft: depth > 0 ? `${depth * 24}px` : "0",
+          background: isMain ? "var(--accent-5)" : isSub ? "var(--gray-1)" : "transparent",
+          borderLeft: isMain ? "3px solid var(--accent)" : isSub ? "2px solid var(--warning)" : "1px solid var(--gray-2)",
+        }}
+        onClick={() => hasChildren && setExpanded(!expanded)}
+      >
+        <div className="flex-shrink-0 mt-0.5" style={{ width: "16px" }}>
+          {hasChildren ? (
+            expanded ? <ChevronDown size={14} style={{ color: "var(--gray-4)" }} /> : <ChevronRight size={14} style={{ color: "var(--gray-4)" }} />
+          ) : (
+            <div className="w-1.5 h-1.5 rounded-full ml-[3px]" style={{ background: isMain ? "var(--accent)" : isSub ? "var(--warning)" : "var(--gray-3)" }} />
+          )}
+        </div>
+
+        {chapterNum && (
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded flex-shrink-0" style={{ background: "var(--accent)", color: "white" }}>
+            {chapterNum}
+          </span>
+        )}
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className={`text-[13px] leading-relaxed ${isMain ? "font-semibold" : isSub ? "font-medium" : ""}`}
+              style={{ color: isMain ? "var(--gray-8)" : isSub ? "var(--gray-7)" : "var(--gray-6)" }}
+            >
+              {displayLabel}
+            </span>
+            {node.arrow && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: isMain ? "rgba(13,148,136,0.15)" : "var(--gray-2)", color: isMain ? "var(--accent)" : "var(--gray-5)" }}>
+                {node.arrow}
+              </span>
+            )}
+          </div>
+          {hasChildren && (
+            <span className="text-[10px] mt-0.5" style={{ color: "var(--gray-4)" }}>
+              {node.children.length} 个子项 · {expanded ? "点击折叠" : "点击展开"}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {hasChildren && (
+        <div className="overflow-hidden transition-all duration-300" style={{ maxHeight: expanded ? `${node.children.length * 80}px` : "0", opacity: expanded ? 1 : 0 }}>
+          <div className="relative">
+            {depth >= 0 && (
+              <div className="absolute top-0 bottom-0" style={{ left: `${(depth + 1) * 24 + 7}px`, width: "1px", background: "var(--gray-2)" }} />
+            )}
+            {node.children.map((child) => (
+              <ChapterNode key={child.id} node={child} depth={depth + 1} defaultExpanded={child.level < 2} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ChapterTreeView({ treeText }: { treeText: string }) {
+  const tree = useMemo(() => parseChapterTree(treeText), [treeText]);
+  const totalNodes = treeText.split("\n").filter((l) => l.trim()).length;
+
+  return (
+    <div className="border rounded-lg overflow-hidden" style={{ borderColor: "var(--gray-2)", background: "white" }}>
+      <div className="px-5 py-3 border-b flex items-center gap-2" style={{ borderColor: "var(--gray-2)", background: "var(--gray-1)" }}>
+        <Layers size={14} style={{ color: "var(--accent)" }} />
+        <h3 className="text-[13px] font-medium" style={{ color: "var(--gray-7)" }}>章节逻辑框架</h3>
+        <span className="text-[11px] px-2 py-0.5 rounded ml-auto" style={{ background: "var(--gray-2)", color: "var(--gray-5)" }}>
+          {tree.length} 章 · {totalNodes} 节点
+        </span>
+      </div>
+      <div className="p-4 space-y-1">
+        {tree.map((node) => (
+          <ChapterNode key={node.id} node={node} depth={0} defaultExpanded={true} />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 interface ReportAnalysis {
   // 基本信息
@@ -205,6 +351,8 @@ export default function AnalyzePage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<ReportAnalysis | null>(null);
   const [activeTab, setActiveTab] = useState("oneliner");
+  const [error, setError] = useState<string | null>(null);
+  const [analysisStep, setAnalysisStep] = useState(0); // 0=空闲, 1=上传, 2=解析, 3=AI分析
 
   const allFiles = getAllFiles();
 
@@ -219,14 +367,76 @@ export default function AnalyzePage() {
     { id: "reusable", label: "可复用与局限" },
   ];
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     if (!selectedFileId) return;
     setIsAnalyzing(true);
     setActiveTab("oneliner");
-    setTimeout(() => {
-      setResult(mockAnalysis);
+    setError(null);
+    setResult(null);
+
+    const API = api("");
+
+    try {
+      // 查找文件信息
+      const fileData = allFiles.find((f) => f.file.id === selectedFileId);
+      if (!fileData) throw new Error("文件未找到");
+
+      // Step 1: 上传文件（每次都重新上传，确保后端有这个文件）
+      let backendFileId = "";
+      if (fileData.file.hasBlob) {
+        setAnalysisStep(1);
+        const blob = await getFileBlob(selectedFileId);
+        if (blob) {
+          const formData = new FormData();
+          formData.append("file", blob, fileData.file.name);
+          const uploadRes = await fetch(`${API}/upload`, { method: "POST", body: formData });
+          if (uploadRes.ok) {
+            const uploadData = await uploadRes.json();
+            backendFileId = uploadData.id;
+          } else {
+            throw new Error("文件上传失败");
+          }
+        }
+      }
+      if (!backendFileId) backendFileId = fileData.file.backendFileId || selectedFileId;
+
+      // Step 2: 解析 PDF（Marker 解析，通常 10-30 秒）
+      setAnalysisStep(2);
+      const parseRes = await fetch(`${API}/parse/${backendFileId}`, { method: "POST" });
+      if (!parseRes.ok) {
+        const errData = await parseRes.json().catch(() => ({}));
+        throw new Error(errData.detail || "PDF 解析失败");
+      }
+
+      // Step 3: AI 分析（通常 30-90 秒）
+      setAnalysisStep(3);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 300000); // 5分钟超时
+
+      const res = await fetch(`${API}/analyze/${backendFileId}`, {
+        method: "POST",
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ detail: "请求失败" }));
+        throw new Error(errData.detail || "AI 分析失败");
+      }
+
+      const data: ReportAnalysis = await res.json();
+      setResult(data);
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setError("分析超时（5分钟），请稍后重试");
+      } else {
+        const message = err instanceof Error ? err.message : "分析过程中出现错误";
+        setError(message);
+      }
+    } finally {
       setIsAnalyzing(false);
-    }, 2000);
+      setAnalysisStep(0);
+    }
   };
 
   return (
@@ -256,7 +466,77 @@ export default function AnalyzePage() {
         </button>
       </div>
 
-      {result ? (
+      {/* Error Display */}
+      {error && (
+        <div className="mb-4 p-3 rounded-lg border text-[13px] flex items-center gap-2" style={{ borderColor: "var(--danger)", background: "rgba(220,38,38,0.05)", color: "var(--danger)" }}>
+          <AlertTriangle size={14} />
+          <span className="flex-1">{error}</span>
+          <button onClick={() => setError(null)} style={{ color: "var(--gray-4)" }}><X size={14} /></button>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {isAnalyzing ? (
+        <div className="border rounded-lg p-10" style={{ borderColor: "var(--gray-2)", background: "white" }}>
+          <div className="max-w-md mx-auto">
+            {/* 步骤指示器 */}
+            <div className="flex items-center justify-between mb-6">
+              {[
+                { step: 1, label: "上传文件" },
+                { step: 2, label: "解析PDF" },
+                { step: 3, label: "AI分析" },
+              ].map(({ step, label }, i) => (
+                <div key={step} className="flex items-center gap-2">
+                  <div
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-semibold transition-all"
+                    style={{
+                      background: analysisStep >= step ? "var(--accent)" : "var(--gray-2)",
+                      color: analysisStep >= step ? "white" : "var(--gray-4)",
+                      boxShadow: analysisStep === step ? "0 0 8px rgba(13,148,136,0.4)" : "none",
+                    }}
+                  >
+                    {analysisStep > step ? "✓" : step}
+                  </div>
+                  <span
+                    className="text-[12px] font-medium"
+                    style={{ color: analysisStep >= step ? "var(--gray-7)" : "var(--gray-4)" }}
+                  >
+                    {label}
+                  </span>
+                  {i < 2 && (
+                    <div className="w-8 h-px mx-1" style={{ background: analysisStep > step ? "var(--accent)" : "var(--gray-2)" }} />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* 当前步骤描述 */}
+            <div className="text-center">
+              <Loader2 size={24} className="mx-auto mb-3 animate-spin" style={{ color: "var(--accent)" }} />
+              <p className="text-[14px] font-medium mb-1" style={{ color: "var(--gray-7)" }}>
+                {analysisStep === 1 && "正在上传文件..."}
+                {analysisStep === 2 && "正在解析 PDF（首次约 15-30 秒）..."}
+                {analysisStep === 3 && "正在 AI 深度分析（约 30-90 秒）..."}
+              </p>
+              <p className="text-[12px]" style={{ color: "var(--gray-4)" }}>
+                {analysisStep === 2 && "Marker 引擎正在提取文本、表格和结构"}
+                {analysisStep === 3 && "Mimo 模型正在拆解研究框架、指标和逻辑"}
+              </p>
+            </div>
+
+            {/* 进度条 */}
+            <div className="mt-6 h-1 rounded-full overflow-hidden" style={{ background: "var(--gray-2)" }}>
+              <div
+                className="h-full rounded-full transition-all duration-1000"
+                style={{
+                  width: `${(analysisStep / 3) * 100}%`,
+                  background: "var(--accent)",
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      ) : result ? (
         <div>
           {/* Report Header */}
           <div className="border rounded-lg p-5 mb-4" style={{ borderColor: "var(--gray-2)", background: "white" }}>
@@ -336,10 +616,7 @@ export default function AnalyzePage() {
             )}
 
             {activeTab === "chapters" && (
-              <div className="border rounded-lg p-5" style={{ borderColor: "var(--gray-2)", background: "white" }}>
-                <h3 className="text-[14px] font-medium mb-3" style={{ color: "var(--gray-7)" }}>章节逻辑框架</h3>
-                <pre className="text-[12px] leading-relaxed whitespace-pre-wrap font-mono" style={{ color: "var(--gray-6)" }}>{result.chapterTree}</pre>
-              </div>
+              <ChapterTreeView treeText={result.chapterTree} />
             )}
 
             {activeTab === "tech" && (

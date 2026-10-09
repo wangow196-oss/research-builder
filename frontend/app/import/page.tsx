@@ -302,6 +302,7 @@ export default function ImportPage() {
                 <QAPanel
                   selectedText={qaText}
                   fileName={previewFile.name}
+                  fileId={previewFile.backendFileId || previewFile.id}
                   onClose={() => { setShowQA(false); setQaText(""); }}
                 />
               ) : (

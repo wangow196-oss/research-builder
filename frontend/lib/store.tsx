@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 import { saveFileBlob, deleteFileBlob, getFileBlob } from "./db";
+import { api } from "./api";
 
 export interface FileItem {
   id: string;
@@ -10,6 +11,7 @@ export interface FileItem {
   date: string;
   publishDate?: string; // 研报发布日期（从PDF第一页提取）
   hasBlob?: boolean; // whether a PDF blob is stored in IndexedDB
+  backendFileId?: string; // 后端文件 ID（上传后获得）
 }
 
 export interface FolderItem {
@@ -150,19 +152,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await saveFileBlob(fileId, file.blob);
       }
 
-      // Try to upload to backend and get publish date
+      // Try to upload to backend and get publish date + backend file ID
       let publishDate: string | undefined;
+      let backendFileId: string | undefined;
       if (file.blob) {
         try {
           const formData = new FormData();
           formData.append("file", file.blob, file.name);
-          const res = await fetch("http://localhost:8000/api/upload", {
+          const res = await fetch("api("/api")/upload", {
             method: "POST",
             body: formData,
           });
           if (res.ok) {
             const data = await res.json();
             publishDate = data.publish_date || undefined;
+            backendFileId = data.id || undefined;
           }
         } catch {
           // Backend not available, skip
@@ -176,6 +180,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         date: new Date().toISOString().split("T")[0],
         publishDate: publishDate,
         hasBlob: !!file.blob,
+        backendFileId: backendFileId,
       });
     }
     setFolders((prev) =>

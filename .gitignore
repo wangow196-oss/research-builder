@@ -8,9 +8,13 @@ __pycache__/
 .next/
 out/
 
-# Uploads
+# Data (SQLite, uploads, ChromaDB, cache)
+backend/data/
 backend/uploads/*
 !backend/uploads/.gitkeep
+backend/cache/
+backend/chroma_db/
+backend/marker_test_output.md
 
 # IDE
 .idea/
@@ -23,3 +27,10 @@ Thumbs.db
 # Env
 .env
 .env.local
+.env.production
+frontend/.env.local
+frontend/.env.production
+backend/.env.local
+
+# Vercel
+.vercel

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Send, Loader2, Globe, FileText, X, Sparkles, MessageSquare } from "lucide-react";
+import { api } from "@/lib/api";
 
 interface Message {
   role: "user" | "assistant";
@@ -12,10 +13,11 @@ interface Message {
 interface QAPanelProps {
   selectedText: string;
   fileName: string;
+  fileId?: string;
   onClose: () => void;
 }
 
-export function QAPanel({ selectedText, fileName, onClose }: QAPanelProps) {
+export function QAPanel({ selectedText, fileName, fileId, onClose }: QAPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -41,13 +43,14 @@ export function QAPanel({ selectedText, fileName, onClose }: QAPanelProps) {
     setIsLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8000/api/qa", {
+      const res = await fetch("api("/api")/qa", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question,
           selected_text: selectedText,
           file_name: fileName,
+          file_id: fileId || "",
           history: messages.map((m) => ({ role: m.role, content: m.content })),
         }),
       });
@@ -68,7 +71,7 @@ export function QAPanel({ selectedText, fileName, onClose }: QAPanelProps) {
         ...prev,
         {
           role: "assistant",
-          content: "请求失败，请确认后端服务已启动（localhost:8000）",
+          content: "请求失败，请确认后端服务已启动",
           sources: [],
         },
       ]);
